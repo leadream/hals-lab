@@ -1,0 +1,371 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <script is:inline src="/gif/gif.js"></script>
+  <script is:inline src="/gif/libgif.js"></script>
+  <div class="flex justify-center pt-10">
+    <div class="w-full max-w-sm">
+      <h2>表情不包浆，聊天咋变强。</h2>
+      <div id="demo" class="baojiang-demo">
+        <p>表情包包浆示例</p>
+        <div class="demo-gifs">
+          <img src="/baojiang/zkoc.gif"/>
+          <div>→</div>
+          <img src="/baojiang/zkoc-baojiang.gif"/>
+        </div>
+      </div>
+      <div id="baojiang-imgs" class="baojiang-imgs">
+        <img id="source" style="display: none;"/>
+        <img id="result" style="display: none;"/>
+        <div id="mask" class="imgs-mask">正在包浆中</div>
+      </div>
+      <div id="style-selector" class="baojiang-style">
+        <label class="style-item"><input name="style" type="radio" value="0"/> 微微包浆</label>
+        <label class="style-item"><input name="style" type="radio" value="1" checked/> 中等包浆</label>
+        <label class="style-item"><input name="style" type="radio" value="2"/> 极致包浆</label>
+      </div>
+      <label id="uploader" class="baojiang-uploader">
+        <span id="uploader-text">选择表情图片</span>
+        <input id="uploader-input" type="file">
+      </label>
+      <button id="action-button" class="baojiang-button">
+        <i class="fa fa-spinner fa-spin"></i>
+        <span id="button-text">开始包浆</span>
+      </button>
+      <div>
+        <br/>
+        <a href="https://mp.weixin.qq.com/s/mLRrXK-QpPAlGD8xcGIcbw" target="_blank">我为什么做这个？</a>
+      </div>
+      <div id="message" class="baojiang-message"></div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    background: #FFF6F6;
+  }
+  .baojiang {
+    min-height: calc(100vh - 30px);
+    margin-top: 15px;
+    margin-bottom: 15px;
+    padding: 25px 15px;
+    text-align: center;
+    border: 2px solid #333;
+    border-radius: 6px;
+  }
+  .baojiang-demo .demo-gifs {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+  .baojiang-demo .demo-gifs > div {
+    width: 20px;
+    font-weight: bold;
+    font-size: 18px;
+  }
+  .baojiang-demo .demo-gifs > img {
+    width: calc(50% - 10px);
+  }
+  .baojiang-imgs {
+    position: relative;
+  }
+  .baojiang-imgs .imgs-mask {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    color: #FFF;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 0 0 2px #666;
+    background: rgba(0, 255, 10, 0.05);
+    overflow: hidden;
+  }
+  .baojiang-imgs .imgs-mask.polishing {
+    display: flex;
+    animation: polishing 2s linear infinite alternate;
+  }
+  .baojiang-imgs .jsgif {
+    display: none;
+  }
+  .baojiang-style {
+    display: none;
+    margin-top: 15px;
+    margin-bottom: 15px;
+  }
+  .baojiang-uploader {
+    display: inline-block;
+    min-width: 120px;
+    margin: 20px auto;
+    padding: 10px;
+    font-weight: bold;
+    color: #333;
+    background: #FFA827;
+    border: 2px solid #333;
+    border-radius: 6px;
+  }
+  .baojiang-uploader input {
+    display: none;
+  }
+  .baojiang-button {
+    display: none;
+    min-width: 120px;
+    margin: 20px auto;
+    padding: 10px;
+    line-height: 1.6;
+    font-weight: bold;
+    color: #333;
+    background: #FFA827;
+    border: 2px solid #333;
+    border-radius: 6px;
+  }
+  .baojiang-button.disabled {
+    opacity: 0.56;
+  }
+  .baojiang-button.disabled .fa-spinner {
+    display: inline-block;
+  }
+  .baojiang-button .fa-spinner {
+    display: none;
+    margin-right: 5px;
+  }
+  .baojiang-message {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 26px;
+    border-radius: 6px;
+    z-index: 1000;
+    text-align: center;
+    max-width: 200px;
+    margin: 0 auto;
+    padding: 10px;
+    color: white;
+    background: rgba(0, 0, 0, 0.65);
+    transition: transform 0.4s;
+    transform: translateY(200px);
+  }
+  .baojiang-message.appearing {
+    transform: translateY(0);
+  }
+  @keyframes polishing {
+    from {
+      background: rgba(0, 255, 8, 0.05);
+    }
+    to {
+      background: rgba(0, 255, 8, 0.65);
+    }
+  }
+</style>
+
+<script>
+  // @ts-nocheck
+  var demo = document.getElementById('demo')
+  var baojiangImgs = document.getElementById('baojiang-imgs')
+  var source = document.getElementById('source')
+  var resultImg = document.getElementById('result')
+  var mask = document.getElementById('mask')
+  var styleSelector = document.getElementById('style-selector')
+  var uploader = document.getElementById('uploader')
+  var uploaderText = document.getElementById('uploader-text')
+  var uploaderInput = document.getElementById('uploader-input')
+  var actionButton = document.getElementById('action-button')
+  var buttonText = document.getElementById('button-text')
+  var message = document.getElementById('message')
+  var file, size = {width: 0, height: 0}, currentLevel = 1
+  var qualityMaps = [0.1, 0.06, 0.02]
+  var steps = [
+    'INITIAL',
+    'SELECT_STYLE',
+    'PROCESSING',
+    'DONE'
+  ]
+  var curStep = 'INITIAL'
+
+  uploader.addEventListener('change', function(e){
+    file = e.target.files[0]
+    if(validateFile(file)){
+      demo.style.display = 'none'
+      blobToDataUrl(file, function(result){
+        previewImage(result)
+      })
+    }
+  })
+
+  actionButton.addEventListener('click', function(e){
+    if (curStep === 'SELECT_STYLE') {
+      toggleButton('PROCESSING')
+      if (file.type === 'image/gif') {
+        handleGif(source)
+      } else {
+        handleJpgAndPng(source)
+      }
+    }
+  })
+
+  styleSelector.querySelectorAll('.style-item').forEach(function(item){
+    item.addEventListener('change', function(e){
+      currentLevel = parseInt(e.target.value)
+    })
+  })
+
+  function drawFrames(gifFrames, gif, index, max){
+    if (index >= max) {
+      gif.render()
+      return
+    }
+    gifFrames.move_to(index)
+    var canvas = gifFrames.get_canvas()
+    var data = canvas.toDataURL("image/jpeg", qualityMaps[currentLevel])
+    var delay = gifFrames.get_frames()[index].delay*10
+    var frame = document.createElement('canvas')
+    frame.width = size.width
+    frame.height = size.height
+    var ctx = frame.getContext('2d')
+    var image = new Image()
+    image.src = data
+    image.onload = function () {
+      ctx.drawImage(image, 0, 0)
+      ctx.fillStyle = 'rgba(0, 255, 10, '+getOpacity(currentLevel)+')'
+      ctx.fillRect(0, 0, size.width, size.height)
+      gif.addFrame(frame, {delay: delay})
+      drawFrames(gifFrames, gif, ++index, max)
+    }
+  }
+
+  function handleGif(source){
+    var previewGif = document.createElement('img')
+    previewGif['rel:auto_play'] = 1
+    previewGif.src = source.src
+    baojiangImgs.appendChild(previewGif)
+    var gifFrames = new SuperGif({ gif: previewGif } )
+    gifFrames.load(function(){
+      var length = gifFrames.get_length()
+      var gif = new GIF({
+        // debug: true,
+        workers: 2,
+        quality: 100,
+        width: size.width,
+        height: size.height,
+        workerScript: '/gif/gif.worker.js'
+      })
+      drawFrames(gifFrames, gif, 0, length)
+      gif.on('finished', function(blob) {
+        var reader = new FileReader()
+        reader.onload = function (e) {
+          resultImg.src = reader.result
+          resultImg.style.display = 'inline-block'
+          toggleButton('DONE')
+          showMessage('包浆成功，长按保存至手机')
+        }
+        reader.readAsDataURL(blob)
+      });
+    });  
+  }
+
+  function handleJpgAndPng(){
+    var canvas = document.createElement('canvas')
+    var ctx = canvas.getContext('2d')
+    canvas.width = size.width
+    canvas.height = size.height
+    ctx.drawImage(source, 0, 0, size.width, size.height)
+    ctx.fillStyle = 'rgba(0, 255, 10, '+getOpacity(currentLevel)+')'
+    ctx.fillRect(0, 0, size.width, size.height)
+    var data = canvas.toDataURL("image/jpeg", qualityMaps[currentLevel])
+    resultImg.src = data
+    resultImg.style.display = 'inline-block'
+    toggleButton('DONE')
+    showMessage('包浆成功，长按保存至手机')
+  }
+
+  function getOpacity(level){
+    var quality = qualityMaps[level]
+    if (quality < 0.1) {
+      var opacity = (0.2 - quality) / 2
+      opacity > 0.06 && (opacity *= 1.8)
+      return opacity
+    }
+    return 0
+  }
+
+  function previewImage(result){
+    styleSelector.style.display = 'block'
+    source.src = result
+    source.style.display = 'inline-block'
+    source.onload = function(){
+      size = {width: source.naturalWidth, height: source.naturalHeight}
+      toggleButton('SELECT_STYLE')
+    }
+  }
+
+  function toggleButton(currentStep){
+    curStep = currentStep
+    if (currentStep==='INITIAL') {
+      resultImg.style.display = 'none'
+      actionButton.style.display = 'none'
+      uploader.style.display = 'inline-block'
+    } else if (currentStep==='SELECT_STYLE') {
+      resultImg.style.display = 'none'
+      actionButton.style.display = 'inline-block'
+      uploader.style.display = 'none'
+      actionButton.disabled = false
+      buttonText.innerText = '开始包浆'
+    } else if (currentStep==='PROCESSING') {
+      actionButton.classList.toggle('disabled')
+      buttonText.innerText = '正在包浆中'
+      actionButton.disabled = true
+      mask.classList.toggle('polishing')
+    } else if (currentStep==='DONE') {
+      actionButton.classList.toggle('disabled')
+      actionButton.style.display = 'none'
+      actionButton.disabled = false
+      source.style.display = 'none'
+      styleSelector.style.display = 'none'
+      uploader.style.display = 'inline-block'
+      uploaderText.innerText = '重新选择表情图片'
+      mask.classList.toggle('polishing')
+      uploader.classList.toggle('disabled')
+    }
+  }
+
+  function blobToDataUrl(blob, callback){
+    var reader = new FileReader()
+    reader.onload = function (e) {
+      callback(reader.result)
+    }
+    reader.readAsDataURL(blob)
+  }
+
+  function showMessage(text){
+    message.innerText = text
+    message.classList.toggle('appearing')
+    setTimeout(function(){
+      message.classList.toggle('appearing')
+    }, 2000);
+  }
+
+  function validateFile(file){
+    var allowedTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif']
+    if (file.size > 5*1024*1024) {
+      showMessage('图片太大了，包不了浆，5M 以下才行')
+      return false
+    }
+    if (allowedTypes.indexOf(file.type) < 0) {
+      showMessage('只能包图片，格式为 jpg、png、gif 中的一种')
+      return false
+    }
+    return true
+  }
+</script>
